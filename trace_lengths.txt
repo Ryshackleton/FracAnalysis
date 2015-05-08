@@ -1,0 +1,4 @@
+Name  Id   TraceLength
+frac_4.5_meters_long 357  4.4573056129881055
+frac_1.3_meters_long 396  1.2656251262865277
+frac_9.3_meters_long 430  9.336523396379551
