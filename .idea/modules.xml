@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/FracAnalysis.iml" filepath="$PROJECT_DIR$/.idea/FracAnalysis.iml" />
+      <module fileurl="file://$USER_HOME$/PythonCourse/PyCharmEval/.idea/PyCharmEval.iml" filepath="$USER_HOME$/PythonCourse/PyCharmEval/.idea/PyCharmEval.iml" />
     </modules>
   </component>
 </project>

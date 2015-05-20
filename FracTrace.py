@@ -63,17 +63,115 @@ class FracTrace():
     def append_color_B(self, b):
         self._bvalue.append(b)
 
-    def append_trace(self, o):
-        """appends another trace to this trace in its entirety to the end of this trace
-        :param: o: the other trace to append to this trace
-        """
+    def pop_all(self):
+        '''
+        Pops one 'entry off of all of the lists'
+        :return:
+        '''
+        self._vlist3.pop()
+        self._vlist2.pop()
+        self._ptype.pop()
+        self._colorindex.pop()
+        self._colornum.pop()
+        self._rvalue.pop()
+        self._gvalue.pop()
+        self._bvalue.pop()
+
+    def reverse_all(self):
+        '''
+        reverses all the lists in this entry
+        :return:
+        '''
+        self._vlist3.reverse()
+        self._vlist2.reverse()
+        self._ptype.reverse()
+        self._colorindex.reverse()
+        self._colornum.reverse()
+        self._rvalue.reverse()
+        self._gvalue.reverse()
+        self._bvalue.reverse()
+
+    def extend_other_lists(self,o):
+        '''
+        Appends all lists in the specified fracture trace to the end of all lists in THIS fracture trace
+        :param o: other FracTrace to append items from
+        :return:
+        '''
         if not isinstance(o,FracTrace):
             raise TypeError
 
-            self._traceName += o._traceName
-            if self._vlist2[ len(self._vlist2)-1 ].same_point(o):
-                pass
+        self._vlist3.extend(o._vlist3)
+        self._vlist2.extend(o._vlist2)
+        self._ptype.extend(o._ptype)
+        self._colorindex.extend(o._colorindex)
+        self._colornum.extend(o._colornum)
+        self._rvalue.extend(o._rvalue)
+        self._gvalue.extend(o._gvalue)
+        self._bvalue.extend(o._bvalue)
 
+    def is_endpoint(self, o, tol):
+        '''
+        Checks if the specified point is an endpoint
+        :param o: another Point2 to check for endpointness
+        :param tol: distance tolerance to check the specified point for
+        :return: None if point o is not an endpoint,
+                the index of the matching endpoint in this FracTrace if o lies within the distance tolerance of an endpoint
+        '''
+        if len(self._vlist2) < 1:
+            return None
+        if len(self._vlist2) < 1:
+            return None
+        if self._vlist2[0].same_point(o,tol):
+            return 0
+        if self._vlist2[len(self._vlist2)-1].same_point(o,tol):
+            return len(self._vlist2)-1
+        return None
+
+    def append_if_same_endpoints(self, ot, tol):
+        """appends another trace to this trace if one or more of the endpoints
+            lie within the specified distance tolerance of one another
+            NOTE: this will delete the duplicate endpoint from this trace if the endpoints lie within the tolerance
+        :param: o: the other trace to append to this trace
+        :param: tol: distance tolerance for endpoint checking
+        :return: True if an appendage was made, False if no match and no appendage was made
+        """
+        if not isinstance(ot,FracTrace):
+            raise TypeError
+        if len(ot._vlist2) == 0:
+            return
+
+        # beginning of other trace matches
+        oi = self.is_endpoint(ot._vlist2[0], tol)
+        if oi == None:
+            # no match, check if tail of other trace matches
+            oi = self.is_endpoint(ot._vlist2[len(ot._vlist2)-1], tol)
+            if oi == None:
+                return False
+            elif oi == 0:
+                self.reverse_all()
+                self.pop_all()
+                ot.reverse_all()
+                self.extend_other_lists(ot)
+                self._traceName += '_JOIN_' + ot._traceName
+                return True
+            elif oi > 0:
+                self.pop_all()
+                ot.reverse_all()
+                self.extend_other_lists(ot)
+                self._traceName += '_JOIN_' + ot._traceName
+                return True
+        elif oi == 0:
+            self.reverse_all()
+            self.pop_all()
+            self.extend_other_lists(ot)
+            self._traceName += '_JOIN_' + ot._traceName
+            return True
+        elif oi > 0:
+            self.pop_all()
+            self.extend_other_lists(ot)
+            self._traceName += '_JOIN_' + ot._traceName
+            return True
+        return False
 
     def get_trace_length2(self):
         """returns the 2D length of the trace by summing up each segment length

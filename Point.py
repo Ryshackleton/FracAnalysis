@@ -103,7 +103,7 @@ class Point2:
         :return: True if the points are closer than the tolerance
                 False if the points are further than the tolerance
         """
-        return self.distance_to(other) < tolerance
+        return (self.distance_to(other) < tolerance)
 
 
     def equal(self, other):
