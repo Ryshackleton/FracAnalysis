@@ -5,6 +5,7 @@ __author__ = 'ryshackleton'
 import sys
 from pprint import pprint
 from FracTrace import FracTrace
+from Point2_MVE import Point2_MVE
 
 
 def read_exported_mve_lines(filename):
@@ -20,6 +21,7 @@ def build_FracTraces(filename):
     fracTraceList = []
     # find the indices of x, y, z, etc in each row of the file
     xi = yi = zi = namei = idi = colori = -1
+    colorni = colorRi = colorBi = colorGi = ptypei = -1
     try:
         if( len(lines) > 0 ):
             header = lines[0]
@@ -84,16 +86,88 @@ def build_FracTraces(filename):
             if ptypei > 0:
                 thisTrc.append_ptype(l[ptypei])
 
-        except IndexError as e:
-            print("Problem creating fracture traces in build_FracTraces")
         except ValueError as e:
             print("TraceId not found for {}".format(l))
+        except IndexError as e:
+            print("Problem creating fracture traces in build_FracTraces")
 
     # do the 3D -> 2D transformation of vertices
     for frac in fracTraceList:
         frac.build_vlist2()
 
     return fracTraceList
+
+def build_point_list(filename):
+    """Builds a list of Point2_MVE() objects from an MVE file
+    :return  [ Point2_MVE(), Point2_MVE(), ... ]
+    """
+    lines = read_exported_mve_lines(filename)
+    point2List = []
+    # find the indices of x, y, z, etc in each row of the file
+    xi = yi = zi = namei = idi = colori = -1
+    colorni = colorRi = colorBi = colorGi = ptypei = -1
+    try:
+        if( len(lines) > 0 ):
+            header = lines[0]
+            xi = header.index('x')
+            yi = header.index('y')
+            zi = header.index('z')
+            namei = header.index('Name')
+            idi = header.index("Id")
+            ptypei = header.index("PType")
+            colori = header.index("Colour Id")
+            colorni = header.index("Colour Num")
+            colorRi = header.index("Colour (red)")
+            colorGi = header.index("Colour (green)")
+            colorBi = header.index("Colour (blue)")
+    except ValueError as e:
+        if xi == -1 \
+                or yi == -1 \
+                or zi == -1:
+            errorm ="Invalid header, header should contain AT LEAST the following tab separated items in any order\n" \
+                    "x    y   z\n" \
+                    "Header can contain ANY of the following tab separated items in any order\n" \
+                    "x    y   z   Name    Id    PType   Colour Num  Colour Id   Colour (red)" \
+                    "Colour (green)  Colour (blue)"
+            print(errorm)
+
+    for l in lines:
+
+        # skip the header line
+        try:
+            float(l[xi])
+        except ValueError:
+            continue
+
+        try:
+            pt = Point2_MVE()
+            # append all of the xyz and other attributes
+            if( xi != -1 and yi != -1 and zi != -1):
+                pt = Point2_MVE(l[xi],l[yi])
+                pt._z = float(l[zi])
+            else:
+                continue
+            if namei > 0:
+                pt._Name = l[namei]
+            if colorni > 0:
+                pt._colornum = l[colorni]
+            if colori > 0:
+                pt._colorindex = l[colori]
+            if colorRi > 0:
+                pt._rvalue = l[colorRi]
+            if colorGi > 0:
+                pt._gvalue = l[colorGi]
+            if colorBi > 0:
+                pt._bvalue = l[colorBi]
+            if ptypei > 0:
+                pt._ptype = l[ptypei]
+            point2List.append(pt)
+
+        except IndexError as e:
+            print("Problem creating points in build point list")
+
+    return point2List
+
 
 def print_FracTraces(fracTraces=[]):
     """Prints the fracture traces to the stdout

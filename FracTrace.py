@@ -1,6 +1,8 @@
 __author__ = 'ryshackleton'
 
-import Point
+import sys
+from Point import Point2
+import math
 from StraightLine2 import StraightLine2
 
 class FracTrace():
@@ -30,9 +32,35 @@ class FracTrace():
             self._rvalue = []
             self._gvalue = []
             self._bvalue = []
+            self._segmentList = []
         except (ValueError,TypeError) as e:
             print("Conversion error: {}" \
                   .format(str(e)),file=sys.stderr)
+
+
+    def build_circular_trace(self,centerx,centery,radius,numpoints):
+        '''
+        Builds a circular fracture trace
+        :param centerx: X coordinate of the center of the circle
+        :param centery: Y coordinate of the center of the circle
+        :param radius: Radius of the circle
+        :param numpoints: number of vertices in the circle
+        :return:
+        '''
+
+        if numpoints < 4:
+            raise ValueError("FracTrace.build_circular_trace(...,numpoints) cannot build a circle with less than 4 pts")
+
+        inc = 2.0 * math.pi / (numpoints - 1)
+        rad = 0.0
+        i=0
+        while i <= numpoints:
+            xcoord = centerx + radius * math.cos(rad)
+            ycoord = centery + radius * math.sin(rad)
+            self._vlist2.append(Point2(xcoord,ycoord))
+            self.append_vertex3((xcoord,ycoord,0.0))
+            rad += inc
+            i += 1
 
     def append_vertex3(self, vertex):
         """ appends a 3d vertex to the frac trace object
@@ -127,6 +155,13 @@ class FracTrace():
             return len(self._vlist2)-1
         return None
 
+    def build_segments(self):
+        '''
+        builds the _segmentList variable for later use
+        :return:
+        '''
+        self._segmentList = self.to_segments()
+
     def to_segments(self):
         '''
         returns a list of StraightLine2 objects representing this line as a list of straight line segments
@@ -139,6 +174,57 @@ class FracTrace():
                                        self._vlist2[i]._x, self._vlist2[i]._y ))
             i += 1
         return segs
+
+
+    def trace_length_inside_circular_scanline(self,circularSegs,circleCenter,radius,tol=1e-03):
+        if not isinstance(circleCenter,Point2):
+            raise TypeError("FracTrace.trace_length_inside_circular_frac_trace() can only operate on a Point2")
+
+        # get segment list, don't modify self
+        mySegs = []
+        if len(self._segmentList) == 0:
+            mySegs = self.to_segments()
+        else:
+            mySegs = self._segmentList
+
+        # check for segments inside the circle
+        segList = [] # list of disconnected segments inside the circle to measure the length of
+        for m in mySegs:
+            # intersection test:
+            # the segment must lie within or intersect the circle if the closest point of this segment
+            # to the circle's center lies within the circle's radius
+            closePt = m.closestPoint(circleCenter)
+            if m._v0.distance_to(closePt) <= radius:
+                isV0in = m._v0.distance_to(circleCenter) <= radius
+                isV1in = m._v1.distance_to(circleCenter) <= radius
+                if isV0in and isV1in: # both inside, just add the segment
+                    segList.append(m)
+                else: # otherwise, find some intersections
+                    spanPt = None
+                    for o in circularSegs: # find the intersection point with the circle
+                        traceIntersects = m.intersectionPoints(o,tol)
+                        if len(traceIntersects) == 1:
+                            iPt = traceIntersects[0]
+                            if isV0in: # v0 in, v1 out - add segment from intersection & v0
+                                segList.append(StraightLine2(iPt._x,iPt._y, m._v0._x,m._v0._y))
+                            elif isV1in:# v1 in, v0 out - add segment from intersection & v1
+                                segList.append(StraightLine2(iPt._x,iPt._y, m._v1._x,m._v1._y))
+                            elif spanPt == None: # handle the odd case of a line with endpoints outside,
+                                                 # but an intersection inside
+                                                 # (assume that we'll hit the other intersection later in the loop)
+                                spanPt = iPt
+                            else:
+                                segList.append(StraightLine2(iPt._x,iPt._y, spanPt._x,spanPt._y))
+                                spanPt = None
+                        elif len(traceIntersects) > 1:
+                            raise ValueError("WTF IS HAPPENING????")
+
+        # sum up lengths
+        sumLen = 0.0
+        for s in segList:
+            sumLen += s._v0.distance_to(s._v1)
+
+        return sumLen
 
 
     def intersection_points_with_trace(self, ot, tol=1e-03):
@@ -230,7 +316,7 @@ class FracTrace():
             # simple case of map view where, coordinatePlane == 1 or -1 and z coordinates all == 0.0
             if (0.0,0.0,1.0) == self._coordinatePlane or (0.0,0.0,-1.0) == self._coordinatePlane:
                 for vertex in self._vlist3:
-                    self._vlist2.append( Point.Point2( vertex[0] , vertex[1] ) )
+                    self._vlist2.append(Point2( vertex[0] , vertex[1] ) )
             else:
                 pass
                 #TODO: implement generalized projection onto 3d planes

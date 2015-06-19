@@ -1,5 +1,3 @@
-from _ast import Set
-
 ___author__ = 'ryshackleton'
 
 import math
@@ -25,8 +23,40 @@ class StraightLine2:
             return True
         return False
 
+    def closestPoint(self, p, tolerance=1e-03):
+        '''
+        Returns the closest point to that lies on this line segment
+        :param p: Point2 to return the distance to
+        :param tolerance: necessary tolerance for determining whether point's perpendicular distance is 0. or not
+        :return: closest point on this line to the specified point
+        '''
+        d = (self._v1._x-self._v0._x)*(self._v1._x-self._v0._x) + \
+            (self._v1._y-self._v0._y)*(self._v1._y-self._v0._y)
+        n = (self._v1._x-self._v0._x)*(p._x-self._v0._x) + \
+            (self._v1._y-self._v0._y)*(p._y-self._v0._y)
 
-    def minimumDistance(self,p, tolerance=1e-03):
+        t = 0.0
+        try:
+            t = n / d
+        except ZeroDivisionError as e:
+            return p
+
+        min_dist = None
+        if t > 0.0 and (t-1.0) < tolerance:
+            p0v = Point2(self._v0._x,self._v0._y)
+            pt = ((self._v1 - self._v0) * t ).add_point(p0v)
+            return pt
+        else:
+            d0 =  self._v0.distance_to(p)
+            d1 =  self._v1.distance_to(p)
+            if d0 < d1:
+                return Point2(self._v0._x,self._v0._y)
+            else:
+                return Point2(self._v1._x,self._v1._y)
+        assert(False) # never get here
+
+
+    def minimumDistance(self, p, tolerance=1e-03):
         '''
         Returns the minimum distance of the specified point to this line segment
         :param p: Point2 to return the distance to
@@ -38,10 +68,15 @@ class StraightLine2:
         n = (self._v1._x-self._v0._x)*(p._x-self._v0._x) + \
             (self._v1._y-self._v0._y)*(p._y-self._v0._y)
 
-        t = n / d
+        t = 0.0
+        try:
+            t = n / d
+        except ZeroDivisionError as e:
+            return 0.0
+
         min_dist = None
         if t > 0.0 and (t-1.0) < tolerance:
-            p0v = Point2(self._v1,self._v0)
+            p0v = Point2(self._v0._x,self._v0._y)
             pv = Point2(p._x,p._y)
             pt = ((self._v1 - self._v0) * t ).add_point(p0v)
             min_dist = (pt - pv).length()
